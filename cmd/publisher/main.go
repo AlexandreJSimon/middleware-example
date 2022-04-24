@@ -2,10 +2,10 @@ package main
 
 import (
         "log"
-        "os"
-        "strings"
+        "strconv"
 
         "github.com/streadway/amqp"
+				"github.com/gin-gonic/gin"
 )
 
 func failOnError(err error, msg string) {
@@ -15,7 +15,7 @@ func failOnError(err error, msg string) {
 }
 
 func main() {
-        conn, err := amqp.Dial("amqp://user:password@localhost:5672/")
+        conn, err := amqp.Dial("amqp://user:password@rabbitmq:5672/")
         failOnError(err, "Failed to connect to RabbitMQ")
         defer conn.Close()
 
@@ -34,27 +34,28 @@ func main() {
         )
         failOnError(err, "Failed to declare an exchange")
 
-        body := bodyFrom(os.Args)
-        err = ch.Publish(
-                "msgs", // exchange
-                "",     // routing key
-                false,  // mandatory
-                false,  // immediate
-                amqp.Publishing{
-                        ContentType: "text/plain",
-                        Body:        []byte(body),
-                })
-        failOnError(err, "Failed to publish a message")
+				d := 0
 
-        log.Printf(" [x] Sent %s", body)
-}
+				r := gin.Default()
+				
+				r.GET("/send", func(c *gin.Context) {
+					d += 1
+					err = ch.Publish(
+						"msgs", // exchange
+						"",     // routing key
+						false,  // mandatory
+						false,  // immediate
+						amqp.Publishing{
+										ContentType: "text/plain",
+										Body:        []byte("msg " + strconv.Itoa(d) ),
+					})
+					failOnError(err, "Failed to publish a message")
+				
+					log.Printf(" [x] Sent %s", "msg " + strconv.Itoa(d))
 
-func bodyFrom(args []string) string {
-        var s string
-        if (len(args) < 2) || os.Args[1] == "" {
-                s = "hello"
-        } else {
-                s = strings.Join(args[1:], " ")
-        }
-        return s
+					c.JSON(200, gin.H{
+						"message": ("msg send " + strconv.Itoa(d)),
+					})
+				})
+				r.Run() 
 }

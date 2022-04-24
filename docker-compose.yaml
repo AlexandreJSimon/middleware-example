@@ -8,3 +8,13 @@ services:
     ports:
       - 8080:15672
       - 5672:5672
+  subscriber:
+    image: subscriber
+    links:
+      - rabbitmq
+  publisher:
+    image: publisher
+    links:
+      - rabbitmq
+    ports:
+      - 3000:3000

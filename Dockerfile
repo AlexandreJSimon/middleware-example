@@ -24,7 +24,13 @@ RUN go build -a -installsuffix cgo -o subscriber github.com/AlexandreJSimon/midd
 # STAGE 2: Build server
 FROM alpine as publisher
 
+ENV PORT=3000
+
 COPY --from=builder /middleware-example/publisher /go/bin/publisher
+
+ENTRYPOINT /go/bin/publisher
+
+EXPOSE 3000
 
 # STAGE 3: Build worker
 FROM alpine as subscriber
